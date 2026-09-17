@@ -211,7 +211,7 @@ export default function Dashboard() {
 
           {/* Notification list */}
           <div className="space-y-3">
-            {notifications.length === 0 && !loading && (
+            {notifications?.length === 0 && !loading && (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900/50">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
                   <Bell className="h-5 w-5" />
@@ -227,7 +227,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {notifications.map((n, i) => (
+            {notifications?.map((n, i) => (
               <motion.div
                 key={n.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -255,14 +255,14 @@ export default function Dashboard() {
           </div>
 
           {/* Loading */}
-          {loading && notifications.length === 0 && (
+          {loading && notifications?.length === 0 && (
             <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-900">
               Loading notifications...
             </div>
           )}
 
           {/* Load more */}
-          {hasMore && notifications.length > 0 && (
+          {hasMore && notifications?.length > 0 && (
             <div className="mt-8 flex justify-center">
               <button
                 onClick={() => loadPage(false)}
