@@ -182,7 +182,8 @@ def login(
     )
 
     return MessageResponse(
-        message="Login successful"
+        message="Login successful",
+        csrf_token=csrf_signed,
     )
 
 
@@ -270,7 +271,8 @@ def refresh(
     )
 
     return MessageResponse(
-        message="Token refreshed"
+        message="Token refreshed",
+        csrf_token=csrf_signed,
     )
 
 

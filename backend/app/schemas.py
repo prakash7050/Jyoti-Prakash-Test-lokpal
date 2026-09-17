@@ -75,6 +75,7 @@ class TokenResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+    csrf_token: str | None = None
 
 
 class NotificationOut(BaseModel):

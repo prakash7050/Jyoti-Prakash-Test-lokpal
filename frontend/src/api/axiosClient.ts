@@ -6,8 +6,7 @@ import axios, {
 } from "axios";
 
 const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:8000";
+  import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const apiClient = axios.create({
   baseURL: `${API_URL}/api`,
@@ -17,20 +16,27 @@ export const apiClient = axios.create({
   },
 });
 
-
 // ============================================================
-// CSRF
+// CSRF TOKEN
 // ============================================================
 
-function readCookie(name: string): string | null {
-  const match = document.cookie.match(
-    new RegExp(`(^|;\\s*)${name}=([^;]*)`)
-  );
+let csrfToken: string | null = null;
 
-  return match
-    ? decodeURIComponent(match[2])
-    : null;
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
 }
+
+export function clearCsrfToken() {
+  csrfToken = null;
+}
+
+export function getCsrfToken() {
+  return csrfToken;
+}
+
+// ============================================================
+// CSRF REQUEST INTERCEPTOR
+// ============================================================
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -39,30 +45,23 @@ apiClient.interceptors.request.use(
     ).toUpperCase();
 
     if (
-      ["POST", "PUT", "PATCH", "DELETE"].includes(method)
+      ["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
+      csrfToken
     ) {
-      const signedCsrf =
-        readCookie("csrf_token");
+      config.headers = config.headers ?? {};
 
-      if (signedCsrf) {
-        const rawToken =
-          signedCsrf.split(".")[0];
-
-        config.headers =
-          config.headers ?? {};
-
-        config.headers["X-CSRF-Token"] =
-          rawToken;
-      }
+      config.headers["X-CSRF-Token"] =
+        csrfToken.includes(".")
+          ? csrfToken.split(".")[0]
+          : csrfToken;
     }
 
     return config;
-  }
+  },
 );
 
-
 // ============================================================
-// Token Refresh
+// TOKEN REFRESH
 // ============================================================
 
 let isRefreshing = false;
@@ -74,55 +73,46 @@ type QueueItem = {
 
 let pendingQueue: QueueItem[] = [];
 
-
 function processQueue(error?: unknown) {
   const queue = [...pendingQueue];
 
   pendingQueue = [];
 
-  queue.forEach(
-    ({ resolve, reject }) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
+  queue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
     }
-  );
+  });
 }
 
+// ============================================================
+// RESPONSE INTERCEPTOR
+// ============================================================
 
 apiClient.interceptors.response.use(
   (response) => response,
 
   async (error: AxiosError) => {
-    const originalRequest =
-      error.config as
-        | (InternalAxiosRequestConfig & {
-            _retry?: boolean;
-          })
-        | undefined;
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & {
+          _retry?: boolean;
+        })
+      | undefined;
 
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    const status =
-      error.response?.status;
+    const status = error.response?.status;
 
-    const url =
-      originalRequest.url || "";
+    const url = originalRequest.url || "";
 
-    const isLogin =
-      url.includes("/login");
+    const isLogin = url.includes("/login");
+    const isRegister = url.includes("/register");
+    const isRefresh = url.includes("/refresh");
 
-    const isRegister =
-      url.includes("/register");
-
-    const isRefresh =
-      url.includes("/refresh");
-
-    // Never try refresh for authentication endpoints.
     if (
       status !== 401 ||
       originalRequest._retry ||
@@ -135,56 +125,54 @@ apiClient.interceptors.response.use(
 
     originalRequest._retry = true;
 
-    // Another request is already refreshing.
     if (isRefreshing) {
-      return new Promise(
-        (resolve, reject) => {
-          pendingQueue.push({
-            resolve: async () => {
-              try {
-                const response =
-                  await apiClient(
-                    originalRequest
-                  );
+      return new Promise((resolve, reject) => {
+        pendingQueue.push({
+          resolve: async () => {
+            try {
+              const response =
+                await apiClient(originalRequest);
 
-                resolve(response);
-              } catch (err) {
-                reject(err);
-              }
-            },
+              resolve(response);
+            } catch (err) {
+              reject(err);
+            }
+          },
 
-            reject,
-          });
-        }
-      );
+          reject,
+        });
+      });
     }
 
     isRefreshing = true;
 
     try {
-      // Browser automatically sends refresh_token
-      // because withCredentials=true.
-      await apiClient.post(
-        "/refresh"
-      );
+      const refreshResponse =
+        await apiClient.post("/refresh");
+
+      // If refresh endpoint returns a new CSRF token,
+      // update the in-memory token.
+      if (refreshResponse.data?.csrf_token) {
+        setCsrfToken(
+          refreshResponse.data.csrf_token,
+        );
+      }
 
       processQueue();
 
-      return await apiClient(
-        originalRequest
-      );
+      return await apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
 
+      clearCsrfToken();
+
       window.dispatchEvent(
-        new CustomEvent("auth:logout")
+        new CustomEvent("auth:logout"),
       );
 
-      return Promise.reject(
-        refreshError
-      );
+      return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
     }
-  }
+  },
 );
