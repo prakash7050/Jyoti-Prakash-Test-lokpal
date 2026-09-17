@@ -84,8 +84,11 @@ export default function Dashboard() {
             <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
               Welcome back,{" "}
               <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                {user?.name?.split(" ")?.[0]}
+                {user?.name?.split(" ")?.length > 1
+                  ? user.name.split(" ")[0]
+                  : user.name}
               </span>
+              !
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg dark:text-slate-400">
