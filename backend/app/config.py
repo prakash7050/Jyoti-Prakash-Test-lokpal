@@ -16,11 +16,16 @@ class Settings(BaseSettings):
     CSRF_SECRET_KEY: str = "change-this-csrf-secret-too"
 
     # Cookies
-    COOKIE_SECURE: bool = False  # set True in production (HTTPS only)
+    # Local development defaults
+    COOKIE_SECURE: bool = False
     COOKIE_SAMESITE: str = "lax"
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "https://jyoti-prakash-test-lokpal-1.onrender.com"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://jyoti-prakash-test-lokpal-1.onrender.com",
+    ]
 
     # Rate limiting
     RATE_LIMIT_LOGIN: str = "5/minute"
@@ -29,6 +34,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()
