@@ -30,7 +30,7 @@ export default function Dashboard() {
         const res = await notificationsApi.list(reset ? null : cursor);
 
         setNotifications((prev) =>
-          reset ? res.data.items : [...prev, ...res.data.items]
+          reset ? res.data.items : [...prev, ...res.data.items],
         );
 
         setCursor(res.data.next_cursor);
@@ -41,7 +41,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     },
-    [cursor, showToast]
+    [cursor, showToast],
   );
 
   useEffect(() => {
@@ -84,13 +84,13 @@ export default function Dashboard() {
             <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
               Welcome back,{" "}
               <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                {user.name.split(" ")[0]}
+                {user?.name?.split(" ")?.[0]}
               </span>
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg dark:text-slate-400">
-              Manage your profile information and stay updated with your
-              latest notifications.
+              Manage your profile information and stay updated with your latest
+              notifications.
             </p>
 
             <div className="mt-7 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500">
