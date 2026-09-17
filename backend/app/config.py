@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: str = "lax"
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "https://jyoti-prakash-test-lokpal-1.onrender.com"]
 
     # Rate limiting
     RATE_LIMIT_LOGIN: str = "5/minute"
