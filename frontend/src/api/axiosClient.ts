@@ -1,13 +1,24 @@
+/// <reference types="vite/client" />
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 // The JWT itself lives in an httpOnly cookie the browser sends automatically
 // (withCredentials) -- JS never touches it, which is the whole point of using
 // httpOnly cookies instead of localStorage for the token.
+// Backend API URL from Vite environment.
+// Local: http://localhost:8000
+// Render: https://your-backend.onrender.com
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export const apiClient = axios.create({
-  baseURL: "/api",
+  baseURL: `${API_URL}/api`,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
+
+
 
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
