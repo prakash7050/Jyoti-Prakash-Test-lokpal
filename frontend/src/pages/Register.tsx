@@ -32,18 +32,12 @@ const schema = z
       .min(2, "Name must be at least 2 characters")
       .max(100, "Name cannot exceed 100 characters"),
 
-    email: z
-      .string()
-      .trim()
-      .email("Enter a valid email address"),
+    email: z.string().trim().email("Enter a valid email address"),
 
     mobile: z
       .string()
       .trim()
-      .regex(
-        /^[6-9]\d{9}$/,
-        "Enter a valid 10-digit mobile number",
-      ),
+      .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
 
     password: z
       .string()
@@ -55,13 +49,10 @@ const schema = z
 
     confirm_password: z.string(),
   })
-  .refine(
-    (data) => data.password === data.confirm_password,
-    {
-      message: "Passwords do not match",
-      path: ["confirm_password"],
-    },
-  );
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -70,10 +61,7 @@ interface PasswordRuleProps {
   children: React.ReactNode;
 }
 
-function PasswordRule({
-  valid,
-  children,
-}: PasswordRuleProps) {
+function PasswordRule({ valid, children }: PasswordRuleProps) {
   return (
     <motion.div
       initial={false}
@@ -90,47 +78,38 @@ function PasswordRule({
             : "bg-white/5 text-slate-600"
         }`}
       >
-        {valid ? (
-          <Check className="h-3 w-3" />
-        ) : (
-          <X className="h-3 w-3" />
-        )}
+        {valid ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       </div>
 
-      <span
-        className={
-          valid ? "text-emerald-300" : "text-slate-500"
-        }
-      >
+      <span className={valid ? "text-emerald-300" : "text-slate-500"}>
         {children}
       </span>
     </motion.div>
   );
 }
 
-interface InputProps {
-  id: string;
-  label: string;
-  type?: string;
-  placeholder?: string;
-  error?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  rightElement?: React.ReactNode;
-  autoComplete?: string;
-  value?: string;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  registration: ReturnType<
-    typeof useForm<FormValues>
-  >["register"] extends (...args: infer _Args) => infer _Return
-    ? unknown
-    : never;
-}
+// interface InputProps {
+//   id: string;
+//   label: string;
+//   type?: string;
+//   placeholder?: string;
+//   error?: string;
+//   icon: React.ComponentType<{ className?: string }>;
+//   rightElement?: React.ReactNode;
+//   autoComplete?: string;
+//   value?: string;
+//   onFocus?: () => void;
+//   onBlur?: () => void;
+//   registration: ReturnType<typeof useForm<FormValues>>["register"] extends (
+//     ...args: infer _Args
+//   ) => infer _Return
+//     ? unknown
+//     : never;
+// }
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [cursor, setCursor] = useState({
     x: 50,
@@ -145,10 +124,7 @@ export default function Register() {
     register,
     handleSubmit,
     watch,
-    formState: {
-      errors,
-      isSubmitting,
-    },
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -161,9 +137,7 @@ export default function Register() {
   });
 
   const dispatch = useAppDispatch();
-  const { error } = useAppSelector(
-    (state) => state.auth,
-  );
+  const { error } = useAppSelector((state) => state.auth);
 
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -182,10 +156,7 @@ export default function Register() {
     window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      window.removeEventListener(
-        "mousemove",
-        handleMouseMove,
-      );
+      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
 
@@ -195,20 +166,13 @@ export default function Register() {
     const result = await dispatch(registerUser(values));
 
     if (registerUser.fulfilled.match(result)) {
-      showToast(
-        "Registration successful. Please log in.",
-        "success",
-      );
+      showToast("Registration successful. Please log in.", "success");
 
       navigate("/login");
       return;
     }
 
-    showToast(
-      (result.payload as string) ||
-        "Registration failed",
-      "error",
-    );
+    showToast((result.payload as string) || "Registration failed", "error");
   };
 
   const inputClass = (
@@ -217,11 +181,7 @@ export default function Register() {
     `group relative rounded-2xl border transition-all duration-300 ${
       isFocused === field
         ? "border-cyan-400/50 bg-cyan-400/[0.04] shadow-[0_0_25px_rgba(34,211,238,0.08)]"
-        : errors[
-              field === "confirm"
-                ? "confirm_password"
-                : field
-            ]
+        : errors[field === "confirm" ? "confirm_password" : field]
           ? "border-rose-400/40 bg-rose-400/[0.03]"
           : "border-white/10 bg-white/[0.04]"
     }`;
@@ -283,37 +243,31 @@ export default function Register() {
           className="absolute bottom-[4%] left-[38%] h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[120px]"
         />
 
-        {Array.from({ length: 16 }).map(
-          (_, index) => (
-            <motion.span
-              key={index}
-              initial={{
-                opacity: 0,
-                y: 20,
-              }}
-              animate={{
-                opacity: [0, 0.45, 0],
-                y: [20, -50, -100],
-                x: [
-                  0,
-                  index % 2 === 0 ? 20 : -20,
-                  0,
-                ],
-              }}
-              transition={{
-                duration: 4 + (index % 4),
-                repeat: Infinity,
-                delay: index * 0.3,
-                ease: "easeOut",
-              }}
-              className="absolute h-1.5 w-1.5 rounded-full bg-cyan-300/40"
-              style={{
-                left: `${5 + index * 6}%`,
-                bottom: `${5 + (index % 6) * 7}%`,
-              }}
-            />
-          ),
-        )}
+        {Array.from({ length: 16 }).map((_, index) => (
+          <motion.span
+            key={index}
+            initial={{
+              opacity: 0,
+              y: 20,
+            }}
+            animate={{
+              opacity: [0, 0.45, 0],
+              y: [20, -50, -100],
+              x: [0, index % 2 === 0 ? 20 : -20, 0],
+            }}
+            transition={{
+              duration: 4 + (index % 4),
+              repeat: Infinity,
+              delay: index * 0.3,
+              ease: "easeOut",
+            }}
+            className="absolute h-1.5 w-1.5 rounded-full bg-cyan-300/40"
+            style={{
+              left: `${5 + index * 6}%`,
+              bottom: `${5 + (index % 6) * 7}%`,
+            }}
+          />
+        ))}
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-10 lg:py-16">
@@ -338,9 +292,8 @@ export default function Register() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-8 text-slate-400">
-              Create your account and get access to your
-              personalized workspace. Your credentials are
-              validated before the account is created.
+              Create your account and get access to your personalized workspace.
+              Your credentials are validated before the account is created.
             </p>
 
             <div className="mt-8 space-y-4">
@@ -493,12 +446,8 @@ export default function Register() {
                         autoComplete="name"
                         placeholder="Your full name"
                         {...register("name")}
-                        onFocus={() =>
-                          setIsFocused("name")
-                        }
-                        onBlur={() =>
-                          setIsFocused(null)
-                        }
+                        onFocus={() => setIsFocused("name")}
+                        onBlur={() => setIsFocused(null)}
                         className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
                       />
                     </div>
@@ -528,12 +477,8 @@ export default function Register() {
                         autoComplete="email"
                         placeholder="you@example.com"
                         {...register("email")}
-                        onFocus={() =>
-                          setIsFocused("email")
-                        }
-                        onBlur={() =>
-                          setIsFocused(null)
-                        }
+                        onFocus={() => setIsFocused("email")}
+                        onBlur={() => setIsFocused(null)}
                         className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
                       />
                     </div>
@@ -565,12 +510,8 @@ export default function Register() {
                         maxLength={10}
                         placeholder="9876543210"
                         {...register("mobile")}
-                        onFocus={() =>
-                          setIsFocused("mobile")
-                        }
-                        onBlur={() =>
-                          setIsFocused(null)
-                        }
+                        onFocus={() => setIsFocused("mobile")}
+                        onBlur={() => setIsFocused(null)}
                         className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
                       />
                     </div>
@@ -596,32 +537,20 @@ export default function Register() {
 
                       <input
                         id="password"
-                        type={
-                          showPassword
-                            ? "text"
-                            : "password"
-                        }
+                        type={showPassword ? "text" : "password"}
                         autoComplete="new-password"
                         placeholder="Create a strong password"
                         {...register("password")}
-                        onFocus={() =>
-                          setIsFocused("password")
-                        }
-                        onBlur={() =>
-                          setIsFocused(null)
-                        }
+                        onFocus={() => setIsFocused("password")}
+                        onBlur={() => setIsFocused(null)}
                         className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-12 text-sm text-white outline-none placeholder:text-slate-600"
                       />
 
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowPassword((value) => !value)
-                        }
+                        onClick={() => setShowPassword((value) => !value)}
                         aria-label={
-                          showPassword
-                            ? "Hide password"
-                            : "Show password"
+                          showPassword ? "Hide password" : "Show password"
                         }
                         className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 hover:bg-white/5 hover:text-white"
                       >
@@ -650,9 +579,7 @@ export default function Register() {
                         Number
                       </PasswordRule>
 
-                      <PasswordRule
-                        valid={/[^A-Za-z0-9]/.test(password)}
-                      >
+                      <PasswordRule valid={/[^A-Za-z0-9]/.test(password)}>
                         Special character
                       </PasswordRule>
                     </div>
@@ -678,29 +605,19 @@ export default function Register() {
 
                       <input
                         id="confirm_password"
-                        type={
-                          showConfirmPassword
-                            ? "text"
-                            : "password"
-                        }
+                        type={showConfirmPassword ? "text" : "password"}
                         autoComplete="new-password"
                         placeholder="Repeat your password"
                         {...register("confirm_password")}
-                        onFocus={() =>
-                          setIsFocused("confirm")
-                        }
-                        onBlur={() =>
-                          setIsFocused(null)
-                        }
+                        onFocus={() => setIsFocused("confirm")}
+                        onBlur={() => setIsFocused(null)}
                         className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-12 text-sm text-white outline-none placeholder:text-slate-600"
                       />
 
                       <button
                         type="button"
                         onClick={() =>
-                          setShowConfirmPassword(
-                            (value) => !value,
-                          )
+                          setShowConfirmPassword((value) => !value)
                         }
                         aria-label={
                           showConfirmPassword
@@ -736,16 +653,8 @@ export default function Register() {
                   <motion.button
                     type="submit"
                     disabled={isSubmitting}
-                    whileHover={
-                      !isSubmitting
-                        ? { y: -2 }
-                        : undefined
-                    }
-                    whileTap={
-                      !isSubmitting
-                        ? { scale: 0.98 }
-                        : undefined
-                    }
+                    whileHover={!isSubmitting ? { y: -2 } : undefined}
+                    whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
                     className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-600 px-5 py-3.5 text-sm font-bold text-white shadow-xl shadow-cyan-500/10 transition disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />

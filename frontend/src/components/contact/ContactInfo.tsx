@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Github, Linkedin, Mail, Sparkles } from "lucide-react";
+import { ArrowUpRight, Mail, Sparkles } from "lucide-react";
 
 import { contactDetails, contactSocials } from "../../data/contact";
 
