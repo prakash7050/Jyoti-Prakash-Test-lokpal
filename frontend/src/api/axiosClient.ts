@@ -1,13 +1,6 @@
 /// <reference types="vite/client" />
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-// The JWT itself lives in an httpOnly cookie the browser sends automatically
-// (withCredentials) -- JS never touches it, which is the whole point of using
-// httpOnly cookies instead of localStorage for the token.
-// Backend API URL from Vite environment.
-// Local: http://localhost:8000
-// Render: https://your-backend.onrender.com
-
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const apiClient = axios.create({
@@ -18,64 +11,114 @@ export const apiClient = axios.create({
   },
 });
 
-
-
 function readCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  const match = document.cookie.match(new RegExp(`(^|;\\s*)${name}=([^;]*)`));
+
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-// Double-submit CSRF: the csrf_token cookie is deliberately NOT httpOnly so this
-// can read it and echo it back as a header; the backend checks cookie === header.
+// CSRF
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const method = (config.method || "get").toUpperCase();
+
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    const signedCsrf = readCookie("csrf_token");
-    if (signedCsrf) {
-      const rawToken = signedCsrf.split(".")[0];
+    const csrfCookie = readCookie("csrf_token");
+
+    if (csrfCookie) {
+      const csrfToken = csrfCookie.split(".")[0];
+
       config.headers = config.headers ?? {};
-      config.headers["X-CSRF-Token"] = rawToken;
+
+      config.headers["X-CSRF-Token"] = csrfToken;
     }
   }
+
   return config;
 });
 
+// Refresh handling
 let isRefreshing = false;
-let pendingQueue: Array<() => void> = [];
+
+type QueueItem = {
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+};
+
+let pendingQueue: QueueItem[] = [];
+
+function processQueue(error: unknown = null) {
+  const queue = [...pendingQueue];
+
+  pendingQueue = [];
+
+  queue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve();
+    }
+  });
+}
 
 apiClient.interceptors.response.use(
   (response) => response,
+
   async (error: AxiosError) => {
-    const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & {
+          _retry?: boolean;
+        })
+      | undefined;
 
-    const isAuthEndpoint = originalRequest?.url?.includes("/login") || originalRequest?.url?.includes("/register");
-
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
-      originalRequest._retry = true;
-
-      if (isRefreshing) {
-        // Queue this request until the in-flight refresh resolves, so we don't
-        // fire N parallel refresh calls when several requests 401 at once.
-        return new Promise((resolve) => {
-          pendingQueue.push(() => resolve(apiClient(originalRequest)));
-        });
-      }
-
-      isRefreshing = true;
-      try {
-        await apiClient.post("/refresh");
-        pendingQueue.forEach((run) => run());
-        pendingQueue = [];
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        pendingQueue = [];
-        window.dispatchEvent(new CustomEvent("auth:logout"));
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+    if (!originalRequest) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
-  }
+    const status = error.response?.status;
+
+    const url = originalRequest.url || "";
+
+    const isLogin = url.includes("/login") || url.includes("/register");
+
+    const isRefresh = url.includes("/refresh");
+
+    if (status !== 401 || originalRequest._retry || isLogin || isRefresh) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        pendingQueue.push({
+          resolve: async () => {
+            try {
+              resolve(await apiClient(originalRequest));
+            } catch (err) {
+              reject(err);
+            }
+          },
+          reject,
+        });
+      });
+    }
+
+    isRefreshing = true;
+
+    try {
+      await apiClient.post("/refresh");
+
+      processQueue();
+
+      return await apiClient(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError);
+
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
+  },
 );
